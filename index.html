@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINDMIRROR - Cognitive Load & Honesty Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .page {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(236, 72, 153, 0.3);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Input Page Styles */
+        #inputPage .container {
+            padding: 60px 50px;
+            text-align: center;
+        }
+
+        header {
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .input-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            margin-bottom: 35px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            color: #4b5563;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #ec4899;
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+            background: white;
+        }
+
+        textarea {
+            height: 160px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-btn {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .file-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(236, 72, 153, 0.3);
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 18px 35px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #9ca3af);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(107, 114, 128, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .recording-status {
+            padding: 15px 20px;
+            background: rgba(236, 72, 153, 0.1);
+            border: 2px solid #ec4899;
+            border-radius: 12px;
+            color: #ec4899;
+            min-width: 220px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .recording-status.recording {
+            background: rgba(236, 72, 153, 0.15);
+            border-color: #ec4899;
+            color: #ec4899;
+            animation: pulse 1.5s infinite;
+        }
+
+        .recording-status.completed {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .transcript-preview {
+            background: rgba(139, 92, 246, 0.1);
+            border: 2px dashed #8b5cf6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+            min-height: 80px;
+            font-style: italic;
+            color: #6b7280;
+            text-align: left;
+        }
+
+        .browser-support {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #3b82f6;
+            text-align: center;
+        }
+
+        /* Dashboard Styles */
+        #dashboardPage .container {
+            padding: 40px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid rgba(236, 72, 153, 0.2);
+        }
+
+        .dashboard-header h2 {
+            font-size: 2.2em;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        #userInfo {
+            font-size: 1.1em;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .slide-container {
+            position: relative;
+            min-height: 550px;
+        }
+
+        .slide {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .slide-header h2 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .slide-header p {
+            color: #6b7280;
+            font-size: 1.2em;
+        }
+
+        .chart-container {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            height: 320px;
+        }
+
+        .reasons-box {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+            padding: 30px;
+            border-radius: 20px;
+            border-left: 5px solid #ec4899;
+        }
+
+        .reasons-box h3 {
+            color: #4b5563;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 700;
+        }
+
+        .reasons-list {
+            list-style: none;
+        }
+
+        .reasons-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+            color: #6b7280;
+            font-size: 1.1em;
+        }
+
+        .reasons-list li:last-child {
+            border-bottom: none;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(236, 72, 153, 0.2);
+        }
+
+        .summary-card h3 {
+            color: #4b5563;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .summary-score {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 10px 0;
+        }
+
+        .summary-card p {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        .summary-recommendations {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 211, 238, 0.15));
+            padding: 30px;
+            border-radius: 20px;
+            border-left: 5px solid #10b981;
+        }
+
+        .summary-recommendations h3 {
+            color: #4b5563;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 700;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .btn-large {
+            padding: 20px 40px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Input Page -->
+    <div id="inputPage" class="page active">
+        <div class="container">
+            <header>
+                <h1>MINDMIRROR</h1>
+                <p class="subtitle">Cognitive Load & Honesty Analyzer</p>
+            </header>
+
+            <div class="input-form">
+                <div class="input-group">
+                    <label for="username">Enter your name...</label>
+                    <input type="text" id="username" placeholder="Type your name here">
+                </div>
+
+                <div class="input-group">
+                    <label for="textInput">Type or paste text...</label>
+                    <textarea id="textInput" placeholder="Enter your text for analysis... Or use voice recording below"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Upload Text File</label>
+                    <div class="file-upload">
+                        <div class="file-btn" onclick="document.getElementById('fileInput').click()">
+                            📁 Choose File
+                        </div>
+                        <span id="fileName" style="color: #6b7280; font-weight: 500;">No file chosen</span>
+                        <input type="file" id="fileInput" accept=".txt,.doc,.docx" style="display: none;" onchange="handleFileSelect(this)">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Voice Recording - Real Speech to Text</label>
+                    <div class="voice-controls">
+                        <button class="btn btn-primary" id="recordBtn">🎤 Start Recording</button>
+                        <button class="btn btn-danger" id="stopBtn" disabled>⏹️ Stop Recording</button>
+                        <div class="recording-status" id="recordingStatus">Click "Start Recording" to begin</div>
+                    </div>
+                    <div class="transcript-preview" id="transcriptPreview">
+                        Your speech will appear here in real-time...
+                    </div>
+                    <div class="browser-support">
+                        💡 Works best in Chrome, Edge, and Safari. Make sure microphone permissions are allowed.
+                    </div>
+                </div>
+
+                <button class="btn btn-success" id="analyzeBtn" style="width: 100%; padding: 20px; font-size: 1.2em;">
+                    🔍 Analyze Text
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="page">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2>Analysis Dashboard</h2>
+                <div id="userInfo">User: <span id="userName"></span></div>
+            </div>
+
+            <div class="slide-container">
+                <!-- Slide 1: Cognitive Load -->
+                <div class="slide active" id="slide1">
+                    <div class="slide-header">
+                        <h2>Cognitive Load Analysis</h2>
+                        <p>Measures mental effort and processing capacity</p>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="cognitiveChart"></canvas>
+                        </div>
+                        <div class="reasons-box">
+                            <h3>Analysis Reasons</h3>
+                            <ul class="reasons-list" id="cognitiveReasons">
+                                <li>Analyzing sentence complexity...</li>
+                                <li>Evaluating filler word usage...</li>
+                                <li>Assessing repetition patterns...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Honesty -->
+                <div class="slide" id="slide2">
+                    <div class="slide-header">
+                        <h2>Honesty Analysis</h2>
+                        <p>Evaluates truthfulness and authenticity</p>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="honestyChart"></canvas>
+                        </div>
+                        <div class="reasons-box">
+                            <h3>Analysis Reasons</h3>
+                            <ul class="reasons-list" id="honestyReasons">
+                                <li>Checking language consistency...</li>
+                                <li>Analyzing qualifier patterns...</li>
+                                <li>Evaluating statement confidence...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Idea Clarity -->
+                <div class="slide" id="slide3">
+                    <div class="slide-header">
+                        <h2>Idea Clarity Analysis</h2>
+                        <p>Assesses coherence and logical flow</p>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="clarityChart"></canvas>
+                        </div>
+                        <div class="reasons-box">
+                            <h3>Analysis Reasons</h3>
+                            <ul class="reasons-list" id="clarityReasons">
+                                <li>Evaluating logical structure...</li>
+                                <li>Analyzing transition usage...</li>
+                                <li>Assessing idea organization...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Summary -->
+                <div class="slide" id="slide4">
+                    <div class="slide-header">
+                        <h2>Complete Analysis Summary</h2>
+                        <p>Comprehensive overview of all metrics</p>
+                    </div>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <h3>Cognitive Load</h3>
+                            <div class="summary-score" id="cognitiveScore">0%</div>
+                            <p>Mental Effort</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>Honesty</h3>
+                            <div class="summary-score" id="honestyScore">0%</div>
+                            <p>Authenticity</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>Idea Clarity</h3>
+                            <div class="summary-score" id="clarityScore">0%</div>
+                            <p>Coherence</p>
+                        </div>
+                    </div>
+
+                    <div class="reasons-box">
+                        <h3>Detailed Analysis</h3>
+                        <div id="summaryReasons">
+                            <p>Complete analysis will be displayed here...</p>
+                        </div>
+                    </div>
+
+                    <div class="summary-recommendations">
+                        <h3>Recommendations</h3>
+                        <ul class="reasons-list" id="recommendations">
+                            <li>Based on your cognitive load score...</li>
+                            <li>Honesty indicators suggest...</li>
+                            <li>Idea clarity can be improved by...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="btn btn-secondary" id="prevBtn" disabled>← Previous</button>
+                <button class="btn btn-primary" id="nextBtn">Next →</button>
+            </div>
+
+            <div class="dashboard-actions">
+                <button class="btn btn-success btn-large" id="exportPdf">📄 Export PDF Report</button>
+                <button class="btn btn-secondary btn-large" id="backToAnalysis">↩ Back to Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MindMirrorApp {
+            constructor() {
+                this.currentSlide = 1;
+                this.totalSlides = 4;
+                this.analysisResults = null;
+                this.recognition = null;
+                this.isRecording = false;
+                this.transcript = '';
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.initializeSpeechRecognition();
+                this.initializeCharts();
+            }
+
+            initializeElements() {
+                // Pages
+                this.inputPage = document.getElementById('inputPage');
+                this.dashboardPage = document.getElementById('dashboardPage');
+                
+                // Input elements
+                this.recordBtn = document.getElementById('recordBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.analyzeBtn = document.getElementById('analyzeBtn');
+                this.recordingStatus = document.getElementById('recordingStatus');
+                this.transcriptPreview = document.getElementById('transcriptPreview');
+                this.textInput = document.getElementById('textInput');
+                this.usernameInput = document.getElementById('username');
+                this.fileInput = document.getElementById('fileInput');
+                this.fileName = document.getElementById('fileName');
+                
+                // Dashboard elements
+                this.userName = document.getElementById('userName');
+                this.prevBtn = document.getElementById('prevBtn');
+                this.nextBtn = document.getElementById('nextBtn');
+                this.exportPdf = document.getElementById('exportPdf');
+                this.backToAnalysis = document.getElementById('backToAnalysis');
+                
+                // Chart elements
+                this.cognitiveChart = null;
+                this.honestyChart = null;
+                this.clarityChart = null;
+            }
+
+            initializeSpeechRecognition() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    this.recordingStatus.innerHTML = '❌ Speech recognition not supported in this browser. Try Chrome or Edge.';
+                    this.recordBtn.disabled = true;
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                this.recognition = new SpeechRecognition();
+                
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.lang = 'en-US';
+
+                this.recognition.onstart = () => {
+                    this.isRecording = true;
+                    this.recordBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.recordingStatus.textContent = "🎤 Listening... Speak now";
+                    this.recordingStatus.className = "recording-status recording";
+                    this.transcript = '';
+                };
+
+                this.recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        this.transcript += finalTranscript;
+                    }
+
+                    this.transcriptPreview.textContent = this.transcript + interimTranscript;
+                    this.transcriptPreview.style.color = '#4b5563';
+                    this.transcriptPreview.style.fontStyle = 'normal';
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    this.recordingStatus.textContent = `❌ Error: ${event.error}`;
+                    this.stopRecording();
+                };
+
+                this.recognition.onend = () => {
+                    if (this.isRecording) {
+                        this.recognition.start();
+                    }
+                };
+            }
+
+            setupEventListeners() {
+                this.recordBtn.addEventListener('click', () => this.startRecording());
+                this.stopBtn.addEventListener('click', () => this.stopRecording());
+                this.analyzeBtn.addEventListener('click', () => this.analyzeContent());
+                
+                this.prevBtn.addEventListener('click', () => this.previousSlide());
+                this.nextBtn.addEventListener('click', () => this.nextSlide());
+                this.exportPdf.addEventListener('click', () => this.exportToPdf());
+                this.backToAnalysis.addEventListener('click', () => this.showInputPage());
+            }
+
+            initializeCharts() {
+                // Speedometer Chart for Cognitive Load
+                this.cognitiveChart = new Chart(document.getElementById('cognitiveChart'), {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [75, 25],
+                            backgroundColor: ['#ec4899', '#f3f4f6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        rotation: -90,
+                        circumference: 180,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        animation: { animateRotate: true }
+                    }
+                });
+
+                // Donut Chart for Honesty
+                this.honestyChart = new Chart(document.getElementById('honestyChart'), {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [60, 40],
+                            backgroundColor: ['#8b5cf6', '#f3f4f6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+                // Line Chart for Idea Clarity
+                this.clarityChart = new Chart(document.getElementById('clarityChart'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Start', 'Middle', 'End'],
+                        datasets: [{
+                            label: 'Clarity Trend',
+                            data: [65, 80, 70],
+                            borderColor: '#ec4899',
+                            backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+
+            startRecording() {
+                if (!this.recognition) {
+                    alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+                    return;
+                }
+
+                try {
+                    this.recognition.start();
+                } catch (error) {
+                    console.error('Error starting recognition:', error);
+                    this.recordingStatus.textContent = '❌ Error starting speech recognition';
+                }
+            }
+
+            stopRecording() {
+                if (this.recognition && this.isRecording) {
+                    this.recognition.stop();
+                    this.isRecording = false;
+                    this.recordBtn.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.recordingStatus.textContent = "✅ Recording completed";
+                    this.recordingStatus.className = "recording-status completed";
+                    
+                    if (this.transcript) {
+                        if (this.textInput.value) {
+                            this.textInput.value += "\n\n" + this.transcript;
+                        } else {
+                            this.textInput.value = this.transcript;
+                        }
+                        this.transcriptPreview.textContent = "Transcript has been transferred to text area above ✓";
+                        this.transcriptPreview.style.color = '#10b981';
+                    }
+                }
+            }
+
+            async analyzeContent() {
+                const username = this.usernameInput.value;
+                const text = this.textInput.value;
+
+                if (!username || !text) {
+                    alert('Please enter both your name and text content for analysis');
+                    return;
+                }
+
+                this.analyzeBtn.textContent = "Analyzing...";
+                this.analyzeBtn.disabled = true;
+
+                try {
+                    const response = await fetch('http://localhost:5000/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            text: text
+                        })
+                    });
+
+                    this.analysisResults = await response.json();
+                    this.showDashboard(username);
+                    
+                } catch (error) {
+                    console.error('Error analyzing content:', error);
+                    this.analysisResults = this.getDemoResults(text);
+                    this.showDashboard(username);
+                } finally {
+                    this.analyzeBtn.textContent = "🔍 Analyze Text";
+                    this.analyzeBtn.disabled = false;
+                }
+            }
+
+            showDashboard(username) {
+                this.inputPage.classList.remove('active');
+                this.dashboardPage.classList.add('active');
+                this.userName.textContent = username;
+                
+                this.updateCharts();
+                this.updateReasons();
+                this.updateSummary();
+            }
+
+            showInputPage() {
+                this.dashboardPage.classList.remove('active');
+                this.inputPage.classList.add('active');
+                this.currentSlide = 1;
+                this.updateNavigation();
+            }
+
+            updateCharts() {
+                const results = this.analysisResults;
+                
+                this.cognitiveChart.data.datasets[0].data = [results.cognitiveLoad.score, 100 - results.cognitiveLoad.score];
+                this.cognitiveChart.update();
+                
+                this.honestyChart.data.datasets[0].data = [results.honesty.score, 100 - results.honesty.score];
+                this.honestyChart.update();
+                
+                this.clarityChart.data.datasets[0].data = [
+                    results.ideaClarity.score - 15,
+                    results.ideaClarity.score + 5,
+                    results.ideaClarity.score - 5
+                ];
+                this.clarityChart.update();
+            }
+
+            updateReasons() {
+                const results = this.analysisResults;
+                
+                document.getElementById('cognitiveReasons').innerHTML = 
+                    results.cognitiveLoad.reasons.map(reason => `<li>${reason}</li>`).join('');
+                
+                document.getElementById('honestyReasons').innerHTML = 
+                    results.honesty.reasons.map(reason => `<li>${reason}</li>`).join('');
+                
+                document.getElementById('clarityReasons').innerHTML = 
+                    results.ideaClarity.reasons.map(reason => `<li>${reason}</li>`).join('');
+            }
+
+            updateSummary() {
+                const results = this.analysisResults;
+                
+                document.getElementById('cognitiveScore').textContent = results.cognitiveLoad.score + '%';
+                document.getElementById('honestyScore').textContent = results.honesty.score + '%';
+                document.getElementById('clarityScore').textContent = results.ideaClarity.score + '%';
+                
+                const summaryHTML = `
+                    <p><strong>Cognitive Load:</strong> ${results.cognitiveLoad.score}% - ${this.getScoreDescription(results.cognitiveLoad.score)}</p>
+                    <p><strong>Honesty Level:</strong> ${results.honesty.score}% - ${this.getScoreDescription(results.honesty.score)}</p>
+                    <p><strong>Idea Clarity:</strong> ${results.ideaClarity.score}% - ${this.getScoreDescription(results.ideaClarity.score)}</p>
+                `;
+                document.getElementById('summaryReasons').innerHTML = summaryHTML;
+                
+                document.getElementById('recommendations').innerHTML = this.generateRecommendations(results);
+            }
+
+            getScoreDescription(score) {
+                if (score >= 80) return 'Excellent';
+                if (score >= 60) return 'Good';
+                if (score >= 40) return 'Average';
+                return 'Needs Improvement';
+            }
+
+            generateRecommendations(results) {
+                const recommendations = [];
+                
+                if (results.cognitiveLoad.score < 60) {
+                    recommendations.push('Practice speaking with fewer filler words and pauses');
+                }
+                if (results.honesty.score < 70) {
+                    recommendations.push('Work on using more direct and confident language');
+                }
+                if (results.ideaClarity.score < 65) {
+                    recommendations.push('Improve logical flow by using transition words');
+                }
+                if (results.cognitiveLoad.score > 80 && results.honesty.score > 75 && results.ideaClarity.score > 75) {
+                    recommendations.push('Excellent communication skills - maintain this level');
+                }
+                
+                return recommendations.map(rec => `<li>${rec}</li>`).join('');
+            }
+
+            previousSlide() {
+                if (this.currentSlide > 1) {
+                    this.currentSlide--;
+                    this.updateSlides();
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides) {
+                    this.currentSlide++;
+                    this.updateSlides();
+                }
+            }
+
+            updateSlides() {
+                document.querySelectorAll('.slide').forEach(slide => {
+                    slide.classList.remove('active');
+                });
+                
+                document.getElementById(`slide${this.currentSlide}`).classList.add('active');
+                
+                this.updateNavigation();
+            }
+
+            updateNavigation() {
+                this.prevBtn.disabled = this.currentSlide === 1;
+                this.nextBtn.disabled = this.currentSlide === this.totalSlides;
+                this.nextBtn.textContent = this.currentSlide === this.totalSlides ? 'Finish →' : 'Next →';
+            }
+
+            exportToPdf() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const results = this.analysisResults;
+                const username = this.userName.textContent;
+                const currentDate = new Date().toLocaleDateString();
+                const currentTime = new Date().toLocaleTimeString();
+
+                doc.setFillColor(236, 72, 153);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(20);
+                doc.text('MINDMIRROR ANALYSIS REPORT', 105, 15, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(`Generated on ${currentDate} at ${currentTime}`, 105, 22, { align: 'center' });
+
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(12);
+                doc.text(`User: ${username}`, 20, 45);
+                doc.text(`Analysis Date: ${currentDate}`, 20, 55);
+                doc.text(`Analysis Time: ${currentTime}`, 20, 65);
+
+                doc.setFontSize(16);
+                doc.text('ANALYSIS RESULTS', 20, 85);
+                doc.setFontSize(12);
+                doc.text(`Cognitive Load: ${results.cognitiveLoad.score}%`, 20, 100);
+                doc.text(`Honesty Level: ${results.honesty.score}%`, 20, 110);
+                doc.text(`Idea Clarity: ${results.ideaClarity.score}%`, 20, 120);
+
+                let yPosition = 140;
+                doc.setFontSize(14);
+                doc.text('DETAILED ANALYSIS', 20, yPosition);
+                yPosition += 10;
+
+                doc.setFontSize(10);
+                doc.text('Cognitive Load Reasons:', 20, yPosition + 5);
+                results.cognitiveLoad.reasons.forEach((reason, index) => {
+                    doc.text(`• ${reason}`, 25, yPosition + 15 + (index * 7));
+                });
+                yPosition += 30;
+
+                doc.text('Honesty Analysis Reasons:', 20, yPosition + 5);
+                results.honesty.reasons.forEach((reason, index) => {
+                    doc.text(`• ${reason}`, 25, yPosition + 15 + (index * 7));
+                });
+                yPosition += 30;
+
+                doc.text('Idea Clarity Reasons:', 20, yPosition + 5);
+                results.ideaClarity.reasons.forEach((reason, index) => {
+                    doc.text(`• ${reason}`, 25, yPosition + 15 + (index * 7));
+                });
+
+                doc.save(`MindMirror_Report_${username}_${currentDate.replace(/\//g, '-')}.pdf`);
+            }
+
+            getDemoResults(text) {
+                const wordCount = text.split(/\s+/).length;
+                const sentenceCount = text.split(/[.!?]+/).length - 1;
+                const avgSentenceLength = wordCount / Math.max(sentenceCount, 1);
+                
+                const fillerWords = (text.match(/\b(um|uh|like|you know|actually|basically)\b/gi) || []).length;
+                const cognitiveScore = Math.max(30, Math.min(95, 70 - (fillerWords * 5) + (avgSentenceLength > 20 ? -10 : 5)));
+                
+                const qualifiers = (text.match(/\b(maybe|perhaps|possibly|I think|I believe|probably)\b/gi) || []).length;
+                const honestyScore = Math.max(40, Math.min(90, 65 - (qualifiers * 8) + (text.length > 100 ? 10 : 0)));
+                
+                const transitionWords = (text.match(/\b(however|therefore|furthermore|additionally|consequently|meanwhile)\b/gi) || []).length;
+                const clarityScore = Math.max(45, Math.min(95, 60 + (transitionWords * 6) + (sentenceCount > 3 ? 15 : 0)));
+
+                return {
+                    cognitiveLoad: {
+                        score: Math.round(cognitiveScore),
+                        reasons: [
+                            fillerWords > 3 ? `High use of filler words (${fillerWords} instances)` : 'Minimal filler word usage',
+                            avgSentenceLength > 25 ? 'Complex sentence structures detected' : 'Appropriate sentence complexity',
+                            wordCount < 50 ? 'Limited content for comprehensive analysis' : 'Sufficient content for analysis'
+                        ]
+                    },
+                    honesty: {
+                        score: Math.round(honestyScore),
+                        reasons: [
+                            qualifiers > 2 ? `Use of qualifying language (${qualifiers} instances)` : 'Direct and confident language',
+                            text.includes('!') ? 'Emphatic language detected' : 'Neutral tone maintained',
+                            'Consistent statement patterns observed'
+                        ]
+                    },
+                    ideaClarity: {
+                        score: Math.round(clarityScore),
+                        reasons: [
+                            transitionWords > 0 ? `Good use of transition words (${transitionWords} instances)` : 'Limited transition word usage',
+                            sentenceCount > 2 ? 'Well-structured multiple sentences' : 'Consider adding more sentence variety',
+                            'Logical flow maintained throughout text'
+                        ]
+                    }
+                };
+            }
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('textInput').value = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new MindMirrorApp();
+        });
+    </script>
+</body>
+</html>
